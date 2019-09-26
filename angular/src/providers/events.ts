@@ -1,10 +1,17 @@
 import { Injectable } from '@angular/core';
 
 export type EventHandler = (...args: any[]) => any;
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class Events {
   private c = new Map<string, EventHandler[]>();
 
+  constructor() {
+    console.warn(`[DEPRECATION][Events]: The Events provider is deprecated and it will be removed in the next major release.
+  - Use "Observables" for a similar pub/sub architecture: https://angular.io/guide/observables
+  - Use "Redux" for advanced state management: https://ngrx.io`);
+  }
   /**
    * Subscribe to an event topic. Events that get posted to that topic will trigger the provided handler.
    *
@@ -71,22 +78,4 @@ export class Events {
       }
     });
   }
-}
-
-export function setupEvents() {
-  const events = new Events();
-
-  window.addEventListener('online', ev => events.publish('app:online', ev));
-
-  window.addEventListener('offline', ev => events.publish('app:offline', ev));
-
-  window.addEventListener('orientationchange', ev => events.publish('app:rotated', ev));
-
-  return events;
-}
-
-export function setupProvideEvents() {
-  return () => {
-    return setupEvents();
-  };
 }

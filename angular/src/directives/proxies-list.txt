@@ -2,7 +2,7 @@
 import * as d from './proxies';
 
 export const DIRECTIVES = [
-  d.IonApp,
+d.IonApp,
   d.IonAvatar,
   d.IonBackButton,
   d.IonBackdrop,
@@ -43,6 +43,7 @@ export const DIRECTIVES = [
   d.IonMenuButton,
   d.IonMenuToggle,
   d.IonNav,
+  d.IonNavLink,
   d.IonNavPop,
   d.IonNavPush,
   d.IonNavSetRoot,

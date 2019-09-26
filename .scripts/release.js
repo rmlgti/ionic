@@ -5,6 +5,7 @@
 const tc = require('turbocolor');
 const execa = require('execa');
 const Listr = require('listr');
+const path = require('path');
 const octokit = require('@octokit/rest')()
 const common = require('./common');
 const fs = require('fs-extra');
@@ -16,6 +17,8 @@ async function main() {
       throw new Error('env.GH_TOKEN is undefined');
     }
 
+    checkProductionRelease();
+
     const tasks = [];
     const { version } = common.readPkg('core');
     const changelog = findChangelog();
@@ -24,7 +27,7 @@ async function main() {
     common.checkGit(tasks);
 
     // publish each package in NPM
-    publishPackages(tasks, common.packages, version);
+    common.publishPackages(tasks, common.packages, version);
 
     // push tag to git remote
     publishGit(tasks, version, changelog);
@@ -39,35 +42,14 @@ async function main() {
   }
 }
 
-
-async function publishPackages(tasks, packages, version) {
-  // first verify version
-  packages.forEach(package => {
-    if (package === 'core') {
-      return;
-    }
-
-    const pkg = common.readPkg(package);
-    tasks.push({
-      title: `${pkg.name}: check version (must match: ${version})`,
-      task: () => {
-        if (version !== pkg.version) {
-          throw new Error(`${pkg.name} version ${pkg.version} must match ${version}`);
-        }
-      }
-    });
-  });
-
-  // next publish
-  packages.forEach(package => {
-    const pkg = common.readPkg(package);
-    const projectRoot = common.projectPath(package);
-
-    tasks.push({
-      title: `${pkg.name}: publish ${pkg.version}`,
-      task: () => execa('npm', ['publish', '--tag', 'latest'], { cwd: projectRoot })
-    });
-  });
+function checkProductionRelease() {
+  const corePath = common.projectPath('core');
+  const hasEsm = fs.existsSync(path.join(corePath, 'dist', 'esm'));
+  const hasEsmEs5 = fs.existsSync(path.join(corePath, 'dist', 'esm-es5'));
+  const hasCjs = fs.existsSync(path.join(corePath, 'dist', 'cjs'));
+  if (!hasEsm || !hasEsmEs5 || !hasCjs) {
+    throw new Error('core build is not a production build');
+  }
 }
 
 function publishGit(tasks, version, changelog) {
@@ -84,7 +66,7 @@ function publishGit(tasks, version, changelog) {
     },
     {
       title: 'Push tags to remove',
-      task: () => execa('git', ['push', '--tags'], { cwd: common.rootDir })
+      task: () => execa('git', ['push', '--follow-tags'], { cwd: common.rootDir })
     },
     {
       title: 'Publish Github release',
